@@ -1,6 +1,8 @@
 ## TODO
 
-- [ ] populate houses (aka sellers)
+- [x] populate sellers
+- [ ] draw circle around seller (rep = radius)
+- [ ] update-display function
 - [ ] buyer movement
 - [ ] sell function
 - [ ] sum of radii limit
