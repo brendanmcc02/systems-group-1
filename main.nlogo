@@ -1,7 +1,7 @@
 breed [buyers buyer]
 breed [sellers seller]
 
-globals [ repIncreaseFactor repDecreaseFactor tickWindowLength] ;
+globals [ repIncreaseFactor repDecreaseFactor tickWindowLength ] ;
 sellers-own [ rep wealth salesCount ] ; seller variables
 
 to setup
@@ -19,10 +19,10 @@ to go
     ]
 
     ask sellers [
-        sell
+        checkBuyers
     ]
 
-    if not any? sellers [stop]
+    if not any? sellers [ stop ]
 
     update-display
     tick
@@ -30,7 +30,36 @@ end
 
 to sell
     ; todo
+    ; salesCount++
+    ; roll for 1/x (repGoesUp = x)
+    ; if x == True:
+    ;   rep++
+    ; roll for 1/y (repGoesDown = Y)
+    ; if y == True: ; bad sale
+    ;   roll for cancel (1/z)
+    ;   rep * z
+    ; else rep = rep
 end
+
+
+to checkBuyers
+  let nearby-buyers buyers in-radius rep
+  ifelse any? nearby-buyers [
+    ; if there is a buyer near the seller
+    ask nearby-buyers [ sell ]
+  ]
+
+  ; TODO checkTickCount
+    ; if tickCount == tickWindowLength:
+    ;   check salesCount:
+    ;     logic for wealth going up/down
+    ;     if wealth == 0:
+    ;       die.
+    ;     elif wealth >
+    ;     set salesCount = 0;
+    ;     tickWindowlength = 0;
+end
+
 @#$#@#$#@
 GRAPHICS-WINDOW
 210
