@@ -1,7 +1,7 @@
 ## TODO
 
 - [x] populate sellers
-- [ ] draw circle around seller (rep = radius)
+- [x] draw circle around seller (rep = radius)
 - [ ] update-display function
 - [ ] buyer movement
 - [ ] sell function
