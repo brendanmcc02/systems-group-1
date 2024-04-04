@@ -1,105 +1,68 @@
-; pathfinding
-
 breed [buyers buyer]
 breed [sellers seller]
 
-globals [ repIncreaseFactor repDecreaseFactor ]
+globals [ repIncreaseFactor repDecreaseFactor tickCount ]
 sellers-own [ rep wealth salesCount ] ; seller variables
 buyers-own [ goal ] ; buyer variables
 
 to setup
-  ca
+    ca ; clear-all
 
-  ask patches [ set pcolor green ]
+    ask patches [ set pcolor green ]
 
-  ; set up buyers
-  ; todo make numberOfBuyers a slider
-  create-buyers 20 [
-    setxy random-xcor random-ycor
-    set goal one-of patches
-    set color yellow
-    set size 5
-  ]
+    ; set up sellers
+    create-sellers numberOfSellers [
+      set wealth (random 10) + 1
+      set rep 50
+      set salesCount 0
+      set color blue
+      setxy random-xcor random-ycor
+    ]
 
-  ; set up sellers
-  create-sellers 5 [
-    set wealth (random 10) + 1
-    set rep 50
-    set salesCount 0
-    set color blue
-    setxy random-xcor random-ycor
-  ]
+    ; set up buyers
+    ; todo make numberOfBuyers a slider
+    create-buyers numberOfBuyers [
+      setxy random-xcor random-ycor
+      set goal one-of patches
+      set color yellow
+      set size 20
+    ]
 
-  draw-circles ; Drawing circles with around each turtle
+    draw-circles ; Drawing circles with around each seller
 
-  ask sellers  [ set label wealth ]
-  ; update-display
-  reset-ticks
+    ; visualise the number of goods each vendor has
+    ask sellers  [ set label wealth ]
+    ; update-display
+
+    set tickCount 0
+
+    reset-ticks
 end
 
 to go
-    ask buyers [
-        move
-    ]
+  move-buyers
 
     ask sellers [
-        set rep rep + 1
+        if tickCount = 0 [
+      set salesCount salesCount + 1
+    ]
+        ;set rep rep + 1
         checkBuyers
+        set label salesCount
     ]
 
     if not any? sellers [ stop ]
 
     draw-circles
 
+
+
     ; update-display
+    set tickCount tickCount + 1
+    set tickCount tickCount mod
     tick
 end
 
-to move
-
-end
-
-to sell
-    ; todo
-    ; salesCount++
-    ; roll for 1/x (repGoesUp = x)
-    ; if x == True:
-    ;   rep++
-    ; roll for 1/y (repGoesDown = Y)
-    ; if y == True: ; bad sale
-    ;   roll for cancel (1/z)
-    ;   rep * z
-    ; else rep = rep
-end
-
-to checkBuyers
-  let nearby-buyers buyers in-radius rep
-  if any? nearby-buyers [
-    ; if there is a buyer near the seller
-    ask nearby-buyers [ sell ]
-  ]
-
-  ; TODO checkTickCount
-    ; if tickCount == tickWindowLength:
-    ;   check salesCount:
-    ;     logic for wealth going up/down
-    ;     if wealth == 0:
-    ;       die.
-    ;     elif wealth >
-    ;     set salesCount = 0;
-    ;     tickWindowlength = 0;
-end
-
-
-to move-buyers
-  ask buyers [
-    ifelse patch-here = goal [
-      set goal one-of patches
-    ] [
-      walk-towards-goal
-    ]
-  ]
-end
 
 to draw-circles
   ask sellers [
@@ -112,55 +75,67 @@ to draw-circles
 end
 
 
+to sell
+  set salesCount salesCount + 1
+
+    ; todo
+    ; salesCount++
+    ; roll for 1/x (repGoesUp = x)
+    ; if x == True:
+    ;   rep++
+    ; roll for 1/y (repGoesDown = Y)
+    ; if y == True: ; bad sale
+    ;   roll for cancel (1/z)
+    ;   rep * z
+    ; else rep = rep
+end
+
+to move-buyers
+  ask buyers [
+    ifelse patch-here = goal [
+      set goal one-of patches
+    ] [
+      walk-towards-goal
+    ]
+  ]
+end
+
 to walk-towards-goal
-  ;if pcolor != gray [
-  ;  ; boost the popularity of the patch we're on
-  ;  ask patch-here [ become-more-popular ]
-  ;]
-  face best-way-to goal
+  face goal
   fd 1
 end
 
-to-report best-way-to [ destination ]
 
-  ; of all the visible route patches, select the ones
-  ; that would take me closer to my destination
-  let visible-patches patches in-radius walker-vision-dist
-  let visible-routes visible-patches with [ pcolor = gray ]
-  let routes-that-take-me-closer visible-routes with [
-    distance destination < [ distance destination - 1 ] of myself
+to checkBuyers
+  let nearby-buyers buyers in-radius rep
+  ; if there is a buyer near the seller
+  if any? nearby-buyers [
+    let nearby-sellers sellers in-radius 1
+    ask nearby-sellers [ sell ]
+    ; ask nearby-buyers [ turnAway ] ; todo
   ]
 
-  ifelse any? routes-that-take-me-closer [
-    ; from those route patches, choose the one that is the closest to me
-    report min-one-of routes-that-take-me-closer [ distance self ]
-  ] [
-    ; if there are no nearby routes to my destination
-    report destination
-  ]
-
+  ; TODO checkTickCount
+    ; if tickCount == tickWindowLength:
+    ;   check salesCount:
+    ;     logic for wealth going up/down
+    ;     if wealth == 0:
+    ;       die.
+    ;     elif wealth >
+    ;     set salesCount = 0;
+    ;     tickWindowlength = 0;
 end
-
-to recolor-patches
-  ask patches with [ pcolor != gray ] [
-    set pcolor green
-  ]
-end
-
-
-; Copyright 2015 Uri Wilensky.
-; See Info tab for full copyright and license.
 @#$#@#$#@
 GRAPHICS-WINDOW
-230
-15
-831
-617
--1
--1
-5.8713
-1
+210
 10
+819
+620
+-1
+-1
+1.0
+1
+20
 1
 1
 1
@@ -168,23 +143,23 @@ GRAPHICS-WINDOW
 1
 1
 1
--50
-50
--50
-50
+-300
+300
+-300
+300
 1
 1
 1
 ticks
-30.0
+60.0
 
 BUTTON
-10
-25
-85
-58
+92
+163
+165
+196
 NIL
-setup
+setup\n
 NIL
 1
 T
@@ -196,10 +171,10 @@ NIL
 1
 
 BUTTON
-90
-25
-165
-58
+114
+246
+177
+279
 NIL
 go
 T
@@ -212,26 +187,46 @@ NIL
 NIL
 0
 
-TEXTBOX
-10
-80
-195
-120
-Once GO is running, click on\nthe view to place buildings.
-12
-0.0
+SLIDER
+671
+39
+843
+72
+numberOfSellers
+numberOfSellers
+5
+20
+5.0
 1
+1
+NIL
+HORIZONTAL
 
 SLIDER
-5
-290
-215
-323
-walker-vision-dist
-walker-vision-dist
-0
-30
-10.0
+675
+109
+879
+142
+tickWindowLength
+tickWindowLength
+100
+10000
+1000.0
+500
+1
+NIL
+HORIZONTAL
+
+SLIDER
+870
+235
+1042
+268
+numberOfBuyers
+numberOfBuyers
+1
+50
+24.0
 1
 1
 NIL
@@ -240,76 +235,39 @@ HORIZONTAL
 @#$#@#$#@
 ## WHAT IS IT?
 
-This is a model about how paths emerge along commonly traveled routes. People tend to take routes that other travelers before them have taken, making them more popular and causing other travelers to follow those same routes. This can be used to determine an ideal set of routes between a set of points of interest without needing a central planner. Paths emerge from routes that travelers share.
+(a general understanding of what the model is trying to show or explain)
 
 ## HOW IT WORKS
 
-Each of the turtles in the model starts somewhere in the world, and is trying to get to another random location. Turtles prefer to move along the gray patches, representing established paths, if those patches are on the way to their destination. But as each turtle moves, it makes the path that it takes more popular. Once a certain route becomes popular enough, it becomes an established route (shown in gray), which attracts yet more turtles en route to their destination.
-
-On setup, each turtle chooses a destination at random. On each tick, a turtle looks to see if there is a gray patch on the way to its destination, and walks toward it if there is. If there no gray patch, it walks directly towards its destination instead. With each step, a turtle makes each patch it walks on more popular. If a turtle causes the patch to pass a certain popularity threshold, it turns gray to indicate the presence of an established route. On the other hand, if no turtle has stepped on a patch in quite a while, its popularity will decrease over time and it will eventually become green again.
-
-You can interact with this model by placing points of interest for the turtles to travel between. While "go" runs, click on a patch in the model to turn that into a point of interest. Once you have placed two or more such points, turtles will travel only between those locations. To remove a location, click it a second time.
+(what rules the agents use to create the overall behavior of the model)
 
 ## HOW TO USE IT
 
-- `popularity-decay-rate` controls the rate at which grass loses popularity in the absence of a turtle visiting it.
-- `popularity-per-step` controls the amount of popularity a turtle contributes to a patch of grass by visiting it.
-- `minimum-route-popularity` controls how popular a given patch must become to turn into an established route.
-- `walker-count` controls the number of turtles in the world.
-- `walker-vision-dist` controls how far from itself each turtle will look to find a patch with an established route to move it closer to its goal.
-- `show-popularity?` allows you to color more popular patches in a lighter shade of green, reflecting the fact that lots of people have walked on them, and showing the paths as they form.
+(how to use the model, including a description of each of the items in the Interface tab)
+
+## THINGS TO NOTICE
+
+(suggested things for the user to notice while running the model)
 
 ## THINGS TO TRY
 
-Try increasing and decreasing `walker-vision-dist`? When you set it to smaller and larger values, how does the evolution of the model change?
-
-`popularity-decay-rate` and `popularity-per-step` balance one another. What happens when the `popularity-decay-rate` is too high relative to `popularity-per-step`? What happens when it is too low?
-
-Can you find a way to measure whether the route network is "finished"? Does that change between runs or does it stay relatively constant? How does changing the `walker-count` affect that?
-
-How does changing the world-wrap effect the shape of the paths that the turtles make?
+(suggested things for the user to try to do (move sliders, switches, etc.) with the model)
 
 ## EXTENDING THE MODEL
 
-See what happens if you set up specific destinations for the turtles instead of having them move at random. You might have start off by moving to a particular patch, or have each turtle move in a unique loop.
+(suggested things to add or change in the Code tab to make the model more complicated, detailed, accurate, etc.)
 
-Come up with a way of plotting how much of each journey a turtle spends on an established route. Try plotting that value against the distance a turtle goes out of its way on a given journey to stay on an established route. How do the two quantities relate to one another?
+## NETLOGO FEATURES
 
-Modify turtles to sometimes remove established routes instead of just creating them. Which route patches are best to remove? Do the resulting shapes generated by the model change?
-
-Turtles select a new patch to move toward each turn. This isn't a particularly efficient way for a turtle to move and sometimes leads to some awkward routes. Can you come up with a more realistic path-finding scheme?
+(interesting or unusual features of NetLogo that the model uses, particularly in the Code tab; or where workarounds were needed for missing features)
 
 ## RELATED MODELS
 
-* [CCL Cities](http://ccl.northwestern.edu/cities/) has some information on city simulation, including other models where "positive feedback" figures prominently.
+(models in the NetLogo Models Library and elsewhere which are of related interest)
 
 ## CREDITS AND REFERENCES
 
-Inspired by [Let pedestrians define the walkways](https://sive.rs/walkways).
-
-## HOW TO CITE
-
-If you mention this model or the NetLogo software in a publication, we ask that you include the citations below.
-
-For the model itself:
-
-* Grider, R. and Wilensky, U. (2015).  NetLogo Paths model.  http://ccl.northwestern.edu/netlogo/models/Paths.  Center for Connected Learning and Computer-Based Modeling, Northwestern University, Evanston, IL.
-
-Please cite the NetLogo software as:
-
-* Wilensky, U. (1999). NetLogo. http://ccl.northwestern.edu/netlogo/. Center for Connected Learning and Computer-Based Modeling, Northwestern University, Evanston, IL.
-
-## COPYRIGHT AND LICENSE
-
-Copyright 2015 Uri Wilensky.
-
-![CC BY-NC-SA 3.0](http://ccl.northwestern.edu/images/creativecommons/byncsa.png)
-
-This work is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 3.0 License.  To view a copy of this license, visit https://creativecommons.org/licenses/by-nc-sa/3.0/ or send a letter to Creative Commons, 559 Nathan Abbott Way, Stanford, California 94305, USA.
-
-Commercial licenses are also available. To inquire about commercial licenses, please contact Uri Wilensky at uri@northwestern.edu.
-
-<!-- 2015 Cite: Grider, R. -->
+(a reference to the model's URL on the web if it has one, as well as any other necessary credits, citations, and links)
 @#$#@#$#@
 default
 true

@@ -1,11 +1,14 @@
 breed [buyers buyer]
 breed [sellers seller]
 
-globals [ repIncreaseFactor repDecreaseFactor ]
+globals [ repIncreaseFactor repDecreaseFactor tickCount ]
 sellers-own [ rep wealth salesCount ] ; seller variables
+buyers-own [ goal ] ; buyer variables
 
 to setup
     ca ; clear-all
+
+    ask patches [ set pcolor green ]
 
     ; set up sellers
     create-sellers numberOfSellers [
@@ -16,13 +19,50 @@ to setup
       setxy random-xcor random-ycor
     ]
 
-    draw-circles ; Drawing circles with around each turtle
+    ; set up buyers
+    ; todo make numberOfBuyers a slider
+    create-buyers numberOfBuyers [
+      setxy random-xcor random-ycor
+      set goal one-of patches
+      set color yellow
+      set size 20
+    ]
+
+    draw-circles ; Drawing circles with around each seller
 
     ; visualise the number of goods each vendor has
     ask sellers  [ set label wealth ]
     ; update-display
+  
+    set tickCount 0
+  
     reset-ticks
 end
+
+to go
+  move-buyers
+
+    ask sellers [
+        if tickCount = 0 [
+           set salesCount 0
+        ]
+        ;set rep rep + 1
+        checkBuyers
+        set label salesCount
+    ]
+
+    if not any? sellers [ stop ]
+
+    draw-circles
+
+  
+  
+    ; update-display
+    set tickCount tickCount + 1
+    set tickCount tickCount mod 100 ; todo tickWindowLength
+    tick
+end
+
 
 to draw-circles
   ask sellers [
@@ -34,25 +74,10 @@ to draw-circles
   ]
 end
 
-to go
-    ask buyers [
-        move
-    ]
-
-    ask sellers [
-        set rep rep + 1
-        checkBuyers
-    ]
-
-    if not any? sellers [ stop ]
-
-    draw-circles
-
-    ; update-display
-    tick
-end
 
 to sell
+  set salesCount salesCount + 1
+  
     ; todo
     ; salesCount++
     ; roll for 1/x (repGoesUp = x)
@@ -65,15 +90,29 @@ to sell
     ; else rep = rep
 end
 
-to move
-
+to move-buyers
+  ask buyers [
+    ifelse patch-here = goal [
+      set goal one-of patches
+    ] [
+      walk-towards-goal
+    ]
+  ]
 end
+
+to walk-towards-goal
+  face goal
+  fd 1
+end
+
 
 to checkBuyers
   let nearby-buyers buyers in-radius rep
+  ; if there is a buyer near the seller
   if any? nearby-buyers [
-    ; if there is a buyer near the seller
-    ask nearby-buyers [ sell ]
+    let nearby-sellers sellers in-radius 1
+    ask nearby-sellers [ sell ]
+    ; ask nearby-buyers [ turnAway ] ; todo
   ]
 
   ; TODO checkTickCount
@@ -174,6 +213,21 @@ tickWindowLength
 10000
 1000.0
 500
+1
+NIL
+HORIZONTAL
+
+SLIDER
+870
+235
+1042
+268
+numberOfBuyers
+numberOfBuyers
+1
+50
+24.0
+1
 1
 NIL
 HORIZONTAL
