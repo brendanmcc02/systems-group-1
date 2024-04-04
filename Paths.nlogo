@@ -1,122 +1,97 @@
 ; pathfinding
 
-breed [buyers buyer]
-breed [sellers seller]
+breed [ buildings building ]
 
-globals [ repIncreaseFactor repDecreaseFactor ]
-sellers-own [ rep wealth salesCount ] ; seller variables
-buyers-own [ goal ] ; buyer variables
+breed [ walkers walker ]
+walkers-own [ goal ]
+
+patches-own [ popularity ]
+
+globals [ mouse-clicked? ]
 
 to setup
-  ca
-
+  clear-all
+  set-default-shape buildings "house"
   ask patches [ set pcolor green ]
-
-  ; set up buyers
-  ; todo make numberOfBuyers a slider
-  create-buyers 20 [
+  create-walkers walker-count [
     setxy random-xcor random-ycor
     set goal one-of patches
     set color yellow
-    set size 5
+    set size 2
   ]
-
-  ; set up sellers
-  create-sellers 5 [
-    set wealth (random 10) + 1
-    set rep 50
-    set salesCount 0
-    set color blue
-    setxy random-xcor random-ycor
-  ]
-
-  draw-circles ; Drawing circles with around each turtle
-
-  ask sellers  [ set label wealth ]
-  ; update-display
   reset-ticks
 end
 
+;; Click to place buildings
+;; Have stuff unbecome path once it decays below a certain popularity threshold
 to go
-    ask buyers [
-        move
+  check-building-placement
+  move-walkers
+  decay-popularity
+  recolor-patches
+  tick
+end
+
+to check-building-placement
+  ifelse mouse-down? [
+    if not mouse-clicked? [
+      set mouse-clicked? true
+      ask patch mouse-xcor mouse-ycor [ toggle-building ]
     ]
-
-    ask sellers [
-        set rep rep + 1
-        checkBuyers
-    ]
-
-    if not any? sellers [ stop ]
-
-    draw-circles
-
-    ; update-display
-    tick
-end
-
-to move
-
-end
-
-to sell
-    ; todo
-    ; salesCount++
-    ; roll for 1/x (repGoesUp = x)
-    ; if x == True:
-    ;   rep++
-    ; roll for 1/y (repGoesDown = Y)
-    ; if y == True: ; bad sale
-    ;   roll for cancel (1/z)
-    ;   rep * z
-    ; else rep = rep
-end
-
-to checkBuyers
-  let nearby-buyers buyers in-radius rep
-  if any? nearby-buyers [
-    ; if there is a buyer near the seller
-    ask nearby-buyers [ sell ]
+  ] [
+    set mouse-clicked? false
   ]
-
-  ; TODO checkTickCount
-    ; if tickCount == tickWindowLength:
-    ;   check salesCount:
-    ;     logic for wealth going up/down
-    ;     if wealth == 0:
-    ;       die.
-    ;     elif wealth >
-    ;     set salesCount = 0;
-    ;     tickWindowlength = 0;
 end
 
+to toggle-building
+  let nearby-buildings buildings in-radius 4
+  ifelse any? nearby-buildings [
+    ; if there is a building near where the mouse was clicked
+    ; (and there should always only be one), we remove it and
+    ask nearby-buildings [ die ]
+  ] [
+    ; if there was no buildings near where
+    ; the mouse was clicked, we create one
+    sprout-buildings 1 [
+      set color red
+      set size 4
+    ]
+  ]
+end
 
-to move-buyers
-  ask buyers [
+to decay-popularity
+  ask patches with [ not any? walkers-here ] [
+    set popularity popularity * (100 - popularity-decay-rate) / 100
+    ; when popularity is below 1, the patch becomes (or stays) grass
+    if popularity < 1 [ set pcolor green ]
+  ]
+end
+
+to become-more-popular
+  set popularity popularity + popularity-per-step
+  ; if the increase in popularity takes us above the threshold, become a route
+  if popularity >= minimum-route-popularity [ set pcolor gray ]
+end
+
+to move-walkers
+  ask walkers [
     ifelse patch-here = goal [
-      set goal one-of patches
+      ifelse count buildings >= 2 [
+        set goal [ patch-here ] of one-of buildings
+      ] [
+        set goal one-of patches
+      ]
     ] [
       walk-towards-goal
     ]
   ]
 end
 
-to draw-circles
-  ask sellers [
-    ask patches in-radius rep [
-      set pcolor red  ; Change the color of the patches to represent the circle
-    ]
-    set shape "house"
-    set size 25
-  ]
-end
-
-
 to walk-towards-goal
-  ;if pcolor != gray [
-  ;  ; boost the popularity of the patch we're on
-  ;  ask patch-here [ become-more-popular ]
-  ;]
+  if pcolor != gray [
+    ; boost the popularity of the patch we're on
+    ask patch-here [ become-more-popular ]
+  ]
   face best-way-to goal
   fd 1
 end
@@ -142,8 +117,15 @@ to-report best-way-to [ destination ]
 end
 
 to recolor-patches
-  ask patches with [ pcolor != gray ] [
-    set pcolor green
+  ifelse show-popularity? [
+    let max-value (minimum-route-popularity * 3)
+    ask patches with [ pcolor != gray ] [
+      set pcolor scale-color green popularity (- max-value) max-value
+    ]
+  ] [
+    ask patches with [ pcolor != gray ] [
+      set pcolor green
+    ]
   ]
 end
 
@@ -154,11 +136,11 @@ end
 GRAPHICS-WINDOW
 230
 15
-831
-617
+743
+529
 -1
 -1
-5.8713
+5
 1
 10
 1
@@ -176,7 +158,7 @@ GRAPHICS-WINDOW
 1
 1
 ticks
-30.0
+30
 
 BUTTON
 10
@@ -212,15 +194,35 @@ NIL
 NIL
 0
 
-TEXTBOX
-10
+SLIDER
+5
+210
+215
+243
+minimum-route-popularity
+minimum-route-popularity
+0
+100
 80
-195
-120
-Once GO is running, click on\nthe view to place buildings.
-12
-0.0
 1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+5
+250
+215
+283
+walker-count
+walker-count
+0
+1000
+250
+1
+1
+NIL
+HORIZONTAL
 
 SLIDER
 5
@@ -231,12 +233,62 @@ walker-vision-dist
 walker-vision-dist
 0
 30
-10.0
+10
 1
 1
 NIL
 HORIZONTAL
 
+SLIDER
+5
+130
+215
+163
+popularity-decay-rate
+popularity-decay-rate
+0
+100
+4
+1
+1
+%
+HORIZONTAL
+
+SLIDER
+5
+170
+215
+203
+popularity-per-step
+popularity-per-step
+0
+100
+20
+1
+1
+NIL
+HORIZONTAL
+
+SWITCH
+5
+330
+215
+363
+show-popularity?
+show-popularity?
+1
+1
+-1000
+
+TEXTBOX
+10
+80
+195
+120
+Once GO is running, click on\nthe view to place buildings.
+12
+0
+1
 @#$#@#$#@
 ## WHAT IS IT?
 
@@ -623,15 +675,15 @@ NetLogo 6.4.0
 @#$#@#$#@
 @#$#@#$#@
 default
-0.0
--0.2 0 0.0 1.0
-0.0 1 1.0 0.0
-0.2 0 0.0 1.0
+0
+-0.2 0 0 1
+0 1 1 0
+0.2 0 0 1
 link direction
 true
 0
 Line -7500403 true 150 150 90 180
 Line -7500403 true 150 150 210 180
 @#$#@#$#@
-0
+
 @#$#@#$#@

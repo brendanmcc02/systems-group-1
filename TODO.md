@@ -3,7 +3,9 @@
 - [x] populate sellers
 - [x] draw circle around seller (rep = radius)
 - [x] random buyer movement
-- [ ] sell function
+- [x] sell function
+- [x] get boolean working
+- [ ] wealth change logic
+- [ ] rep change logic
 - [ ] sum of radii limit
 - [ ] what happens when 2 radii hit eachother: closer to center?
-- [ ] update-display function
