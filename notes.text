@@ -1,10 +1,10 @@
 How the Model Works:
 
-The Model starts by randomly generating aN amount of sellers at random patches, these sellers act as our main agents to 
+The Model starts by randomly generating N amount of sellers at random patches, these sellers act as our main agents to 
 demonstrate wealth distribution and social capital, each of these agents has 3 properties in relation to these:
 
 wealth -> How much stock a seller is allowed to sell per time window. i.e if 10 can only sell 10 in time period
-reputation -> The radius of influence a seller is allowed sell in. if 10 can sell within 10 patchs
+reputation -> The radius of influence a seller is allowed sell in. if 10 can sell within 10 patches
 sales -> The amount of sales made by a seller in a given timeframe. can be any integer up to wealth number
 
 Wealth and Reputation work as the main measurements of capital, both social and value.
