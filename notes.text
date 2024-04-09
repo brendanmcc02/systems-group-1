@@ -1,0 +1,44 @@
+How the Model Works:
+
+The Model starts by randomly generating aN amount of sellers at random patches, these sellers act as our main agents to 
+demonstrate wealth distribution and social capital, each of these agents has 3 properties in relation to these:
+
+wealth -> How much stock a seller is allowed to sell per time window. i.e if 10 can only sell 10 in time period
+reputation -> The radius of influence a seller is allowed sell in. if 10 can sell within 10 patchs
+sales -> The amount of sales made by a seller in a given timeframe. can be any integer up to wealth number
+
+Wealth and Reputation work as the main measurements of capital, both social and value.
+
+Each world generated consists of buyers and sellers, the buyers walk a random path, each step they take is towards
+a goal patch, when they reach this patch they will assign a new goal patch to walk to.
+
+Each Seller has a reputation score that physically is represented by a red radius around them, when a buyer steps into
+this radius the seller will make a sale, this will cause a series of logical operations to occur in the seller agent.
+(Each Buyer can only create 1 sale while they are in the radius they have to exit the radius in order to make another
+purchase.)
+1. The sales count during the current time window will increment (Sales this window + 1)
+
+2. When a sale is made, a random number will be generated, this number will determine whether the stores reputation will
+increase or decrease, for example a roll between 0, 1 and 2 where 1 means increase and 2 means decrease and 0 means stay
+same, increases will be static but decreases can be scaled, in our model we tested a scaling decrease to determine whether
+if larger businesses or smaller businesses are affected by damage to their reputation, when we run the model we will be able
+to detemerine what the outcome to this question is or if it doesn't matter at all (This is what Mary Lee suggested we do)
+
+When a reputation increases the radius around that store will grow in size.
+
+We will have a total radius for all stores, this means if we have 5 stores the total of their radius' will add up to 100,
+this prevents logical errors such as multiple stores having a radius bigger than our models world.
+
+If two radius were to both increase and touch each other, we will have a roll to determine who will grow in radius and who
+will decrease this roll will be random but shifted in favour of the store closest to the center, this communicates positional
+advantage in the matthew effect.
+
+We calculate the radius segment of each store like this: (StoreRep/TotalRep) x TotalRadius = Radius.
+
+3.After a time window set by ticks in our model, all sales counts get compared to the wealth of the sellers this will 
+determine how their wealth increases and by how much. The following formula shows this
+
+
+if: SalesMadeInWindow < Wealth/2 -> Wealth = Wealth - ((Wealth/2) - Sales Made) this is a decrease
+else if: SalesMadeInWindow > Wealth/2 -> Wealth = Wealth + SalesMadeInWindow - (Wealth/2)
+else: SalesMadeInWindow = Wealth/2 -> Wealth stays the same
