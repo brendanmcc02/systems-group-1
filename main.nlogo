@@ -48,7 +48,7 @@ to setup
 end
 
 to go
-
+  ; every tick window:
   if tickCount = 0 and hasStarted = 1  [
     ask sellers [
       ifelse salesCount < (wealth / 2) [
@@ -62,14 +62,31 @@ to go
       set wealth (int wealth)
       set salesCount 0
     ]
+
+    let i 0
+    loop [
+      ifelse i < salesCount [
+        let repRoll random 3
+        ifelse repRoll = 0 [
+          set rep rep + repIncreaseFactor
+        ] [
+          if repRoll = 1 [
+            set rep rep - repDecreaseFactor
+          ]
+        ]
+
+        set i i + 1
+      ] [
+        stop
+      ]
+    ]
+
+    draw-circles
   ]
 
   ask sellers [
       sell
-      ; todo if wealth = 0 die
-      if wealth = 0 [
-        die
-      ]
+      if wealth = 0 [ die ]
       let w1 word "W: " wealth
       let w2 word " SC: " salesCount
       set label word w1 w2
@@ -79,18 +96,16 @@ to go
 
   move-buyers
 
-  draw-circles
-
   set tickCount tickCount + 1
   set tickCount tickCount mod tickWindowLength
 
   set hasStarted 1
-
   tick
 end
 
-
 to draw-circles
+  ask patches [ set pcolor green ]
+
   ask sellers [
     if wealth > 0 [
       ask patches in-radius rep [
@@ -110,24 +125,6 @@ to sell
     if canBuy = 0 [
       set numberOfAvailableBuyers numberOfAvailableBuyers + 1
       set canBuy 1
-    ]
-  ]
-
-  let i 0
-  loop [
-    ifelse i < numberOfAvailableBuyers [
-      let repRoll random 3
-      ifelse repRoll = 0 [
-        set rep rep + repIncreaseFactor
-      ] [
-        if repRoll = 1 [
-          set rep rep - repDecreaseFactor
-        ]
-      ]
-
-      set i i + 1
-    ] [
-      stop
     ]
   ]
 
@@ -245,7 +242,7 @@ tickWindowLength
 tickWindowLength
 100
 10000
-1600.0
+1100.0
 500
 1
 NIL

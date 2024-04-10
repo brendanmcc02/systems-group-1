@@ -85,7 +85,7 @@ tickWindowLength
 tickWindowLength
 100
 10000
-1600.0
+1100.0
 500
 1
 NIL
