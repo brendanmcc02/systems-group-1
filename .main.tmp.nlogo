@@ -1,10 +1,261 @@
+breed [buyers buyer]
+breed [sellers seller]
+breed [prem-buyers prem-buyer]
 
+globals [ tickCount hasStarted gini-index-reserve lorenz-points ]
+sellers-own [ rep wealth salesCount premSalesCount ] ; seller variables
+buyers-own [ goal canBuy ] ; buyer variables
+prem-buyers-own [ goal canBuy ]
+
+to setup
+    ca ; clear-all
+
+    set hasStarted 0
+
+    ask patches [ set pcolor green ]
+
+    ; set up sellers
+    create-sellers numberOfSellers [
+      set wealth ((random 8) + 2) * wealthDisparity
+      ifelse repRandom [
+        set rep (random 70) + 20
+      ] [
+        set rep 50
+      ]
+      set salesCount 0
+      set premSalesCount 0
+      set color blue
+      let x (random 500) - 250
+      let y (random 500) - 250
+      setxy x y
+    ]
+
+    ; set up buyers
+    create-buyers numberOfBuyers [
+      setxy random-xcor random-ycor
+      set goal one-of patches
+      set color yellow
+      set size 20
+    ]
+
+    create-prem-buyers numberOfPremBuyers [
+      setxy random-xcor random-ycor
+      set goal one-of patches
+      set color blue
+      set size 20
+    ]
+
+    draw-circles ; Drawing circles with around each seller
+
+    ask sellers [
+      draw-labels
+    ]
+
+    update-lorenz-and-gini
+
+    set tickCount 0
+    reset-ticks
+end
+
+to go
+  ; every tick window:
+  if tickCount = 0 and hasStarted = 1  [
+    tickWindowEvent
+  ]
+
+  ask sellers [
+      sell
+      draw-labels
+  ]
+
+  if not any? sellers [ stop ]
+
+  move-buyers
+
+  update-lorenz-and-gini
+
+  set tickCount tickCount + 1
+  set tickCount tickCount mod tickWindowLength
+
+  set hasStarted 1
+
+  tick
+end
+
+to draw-labels
+  let w1 word "W: " wealth
+  let w2 word "\nSC: " salesCount
+  let w3 word w1 w2
+
+  ifelse premSalesCount > 0 [
+    let w4 word "\nPSC: " premSalesCount
+    set label word w3 w4
+  ] [
+    set label w3
+  ]
+end
+
+; every tick window
+to tickWindowEvent
+  ask sellers [
+    repeat salesCount [
+      let repRoll random 3
+      ifelse repRoll = 0 [
+        set rep rep + repIncreaseFactor
+        if rep > repLimit [
+          set rep repLimit
+        ]
+      ] [
+        if repRoll = 1 [
+          set rep rep - repDecreaseFactor
+          if rep < 20 [
+            set rep 20
+          ]
+        ]
+      ]
+    ]
+
+    repeat premSalesCount [
+      let repRoll random 3
+      ifelse repRoll = 0 [
+        set rep rep + (repIncreaseFactor * premMultiplier)
+        if rep > repLimit [
+          set rep repLimit
+        ]
+      ] [
+        if repRoll = 1 [
+          set rep rep - (repDecreaseFactor * premMultiplier)
+          if rep < 20 [
+            set rep 20
+          ]
+        ]
+      ]
+    ]
+  ]
+
+  ask sellers [
+    let totalSales (salesCount + (premSalesCount * premMultiplier))
+    ifelse totalSales < (wealth / 2) [
+      set wealth wealth - ((wealth / 2) - totalSales)
+    ] [
+      if totalSales > (wealth / 2) [
+        set wealth wealth + (totalSales - (wealth / 2))
+      ]
+    ]
+
+    set wealth (int wealth)
+
+    if wealth = 1 [
+      set numberOfSellers numberOfSellers - 1
+      die
+    ]
+
+    set salesCount 0
+    set premSalesCount 0
+  ]
+
+    draw-circles
+end
+
+to draw-circles
+  ask patches [ set pcolor green ]
+
+  ask sellers [
+    ask patches in-radius rep [
+      set pcolor red
+    ]
+    set shape "house"
+    set size 25
+  ]
+end
+
+to sell
+  let numberOfAvailableBuyers 0
+  let nearby-buyers buyers in-radius rep
+  let numberOfAvailablePremBuyers 0
+  let nearby-prem-buyers prem-buyers in-radius rep
+
+  ask nearby-buyers [
+    if canBuy = 0 [
+      set numberOfAvailableBuyers numberOfAvailableBuyers + 1
+      set canBuy 1
+    ]
+  ]
+
+  ask nearby-prem-buyers [
+    if canBuy = 0 [
+      set numberOfAvailablePremBuyers numberOfAvailablePremBuyers + 1
+      set canBuy 1
+    ]
+  ]
+
+  set salesCount (salesCount + numberOfAvailableBuyers)
+  set premSalesCount (premSalesCount + numberOfAvailablePremBuyers)
+
+  if salesCount > wealth [
+    set salesCount wealth
+  ]
+end
+
+to move-buyers
+  ask buyers [
+    move
+  ]
+
+  ask prem-buyers [
+    move
+  ]
+end
+
+to move
+  ifelse patch-here = goal [
+      set goal one-of patches
+    ] [
+      walk-towards-goal
+    ]
+
+    ; if in radius/rep of a seller, set true
+    if pcolor = green [
+      set canBuy 0
+    ]
+end
+
+to walk-towards-goal
+  face goal
+  fd 1
+end
+
+;; this procedure recomputes the value of gini-index-reserve
+;; and the points in lorenz-points for the Lorenz and Gini-Index plots
+to update-lorenz-and-gini
+  let sorted-wealths sort [wealth] of sellers
+  let total-wealth sum sorted-wealths
+  let wealth-sum-so-far 0
+  let index 0
+  set gini-index-reserve 0
+  set lorenz-points []
+
+  ;; now actually plot the Lorenz curve -- along the way, we also
+  ;; calculate the Gini index.
+  ;; (see the Info tab for a description of the curve and measure)
+  repeat numberOfSellers [
+    if index < (length sorted-wealths) [
+      set wealth-sum-so-far (wealth-sum-so-far + item index sorted-wealths)
+      set lorenz-points lput ((wealth-sum-so-far / total-wealth) * 100) lorenz-points
+      set index (index + 1)
+      set gini-index-reserve
+        gini-index-reserve +
+        (index / numberOfSellers) -
+        (wealth-sum-so-far / total-wealth)
+    ]
+  ]
+end
 @#$#@#$#@
 GRAPHICS-WINDOW
-210
-10
-819
-620
+370
+18
+979
+628
 -1
 -1
 1.0
@@ -14,8 +265,8 @@ GRAPHICS-WINDOW
 1
 1
 0
-1
-1
+0
+0
 1
 -300
 300
@@ -28,10 +279,10 @@ ticks
 60.0
 
 BUTTON
-92
-163
-165
-196
+62
+173
+135
+206
 NIL
 setup\n
 NIL
@@ -45,10 +296,10 @@ NIL
 1
 
 BUTTON
-114
-246
-177
-279
+154
+173
+217
+206
 NIL
 go
 T
@@ -62,83 +313,12 @@ NIL
 0
 
 SLIDER
-843
-23
-1015
-56
+58
+226
+230
+259
 numberOfSellers
 numberOfSellers
-1
-20
-3.0
-1
-1
-NIL
-HORIZONTAL
-
-SLIDER
-847
-93
-1051
-126
-tickWindowLength
-tickWindowLength
-100
-10000
-1100.0
-500
-1
-NIL
-HORIZONTAL
-
-SLIDER
-1081
-119
-1253
-152
-numberOfBuyers
-numberOfBuyers
-1
-50
-25.0
-1
-1
-NIL
-HORIZONTAL
-
-SLIDER
-936
-250
-1108
-283
-totalRadius
-totalRadius
-0
-100
-50.0
-1
-1
-NIL
-HORIZONTAL
-
-SWITCH
-958
-380
-1098
-413
-repRandom
-repRandom
-0
-1
--1000
-
-SLIDER
-953
-444
-1140
-477
-repDecreaseFactor
-repDecreaseFactor
 1
 10
 5.0
@@ -148,12 +328,165 @@ NIL
 HORIZONTAL
 
 SLIDER
-953
-485
-1133
-518
+58
+266
+262
+299
+tickWindowLength
+tickWindowLength
+0
+1000
+1000.0
+100
+1
+NIL
+HORIZONTAL
+
+SLIDER
+1233
+201
+1408
+234
+numberOfBuyers
+numberOfBuyers
+0
+100
+50.0
+5
+1
+NIL
+HORIZONTAL
+
+SLIDER
+1088
+332
+1260
+365
+repLimit
+repLimit
+0
+300
+100.0
+25
+1
+NIL
+HORIZONTAL
+
+SWITCH
+1110
+462
+1250
+495
+repRandom
+repRandom
+0
+1
+-1000
+
+SLIDER
+1105
+526
+1292
+559
+repDecreaseFactor
+repDecreaseFactor
+1
+10
+8.0
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+1105
+567
+1285
+600
 repIncreaseFactor
 repIncreaseFactor
+1
+10
+8.0
+1
+1
+NIL
+HORIZONTAL
+
+PLOT
+1517
+23
+1816
+255
+Wealth Distribution
+Pop %
+% Wealth
+0.0
+100.0
+0.0
+100.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -2674135 true "" "plot-pen-reset\nset-plot-pen-interval 100 / numberOfSellers\nplot 0\nforeach lorenz-points plot"
+"pen-1" 100.0 0 -16777216 true "plot 0\nplot 100" ""
+
+PLOT
+1252
+355
+1452
+505
+Gini Index
+Time
+Gini
+0.0
+10.0
+0.0
+1.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "plot (gini-index-reserve / numberOfSellers) / 0.5"
+
+SLIDER
+1045
+286
+1217
+319
+wealthDisparity
+wealthDisparity
+1
+10
+5.0
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+1305
+139
+1508
+172
+numberOfPremBuyers
+numberOfPremBuyers
+0
+10
+0.0
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+1354
+280
+1526
+313
+premMultiplier
+premMultiplier
 1
 10
 5.0

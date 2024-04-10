@@ -10,8 +10,9 @@
 - [x] wealth = max sales window cap
 - [x] make wealth int's not float
 - [x] die if wealth = 0 (stop drawing circles when they die)
-- [ ] rep change logic
-- [ ] can't go over the edges (make it flat earth)
-- [ ] rep roll (0, 1, 2)
-- [ ] sum of radii limit (harun?)
-- [ ] what happens when 2 radii hit eachother: closer to center?
+- [x] rep change logic
+- [x] rep roll (0, 1, 2)
+- [x] lorenz curve plot
+- [x] adjust x axis for lorenz curve
+- [x] totalRadius cap
+- [x] premium buyer
